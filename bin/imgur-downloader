@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+
+import os
+from argparse import ArgumentParser
+from getpass import getpass
+
+from imgurdl import ImgurAlbum
+
+
+if __name__ == '__main__':
+    cli = ArgumentParser(
+        description='Download Imgur Albums')
+    cli.add_argument(
+        '-q', '--quiet', '--no-progress',
+        dest='progress',
+        action='store_false',
+        help='Do not show a progress bar for downloads')
+    cli.add_argument(
+        '-d', '--dir',
+        dest='directory',
+        default=os.getcwd(),
+        help='Directory to save albums to '
+        + '(defaults to current working directory)')
+    cli.add_argument(
+        '--auth',
+        dest='token',
+        default=None,
+        help='Imgur API Client-ID Token')
+    cli.add_argument(
+        'album',
+        nargs='*',
+        help='URL to Imgur Album (Multiple Allowed)')
+    args = cli.parse_args()
+    if not args.album:
+        cli.error('need at least one URL')
+
+    tprompt = 'Imgur API Client-ID Token: '
+    clientid = args.token or os.getenv('IMGUR_API_TOKEN') or getpass(tprompt)
+
+    try:
+        albums = set(map(
+            lambda url: ImgurAlbum.from_api(clientid=clientid, url=url),
+            args.album
+        ))
+        for album in albums:
+            album.download(destdir=args.directory, progressbar=args.progress)
+    except ValueError as e:
+        cli.error(str(e))
